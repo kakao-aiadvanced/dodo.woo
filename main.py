@@ -13,7 +13,7 @@ from tavily import TavilyClient
 from typing_extensions import TypedDict
 
 # export
-tavily = TavilyClient(api_key="")
+tavily = TavilyClient(api_key="tvly")
 
 st.set_page_config(
     page_title="RAG Assistant Of Kakao AI Advanced",
@@ -182,12 +182,12 @@ def main():
 
         # Web search
         docs = tavily.search(query=question)['results']
-        web_results = "\n".join([d["content"] for d in docs])
-        web_results = Document(page_content=web_results)
+        context = [Document(page_content=obj["content"], metadata={"source": obj["url"]}) for obj in docs]
+
         if documents is not None:
-            documents.append(web_results)
+            documents.extend(context)
         else:
-            documents = [web_results]
+            documents = context
         print(documents)
         return {"documents": documents, "question": question, "web_search": "YES"}
 
@@ -298,7 +298,7 @@ def main():
     workflow.add_node("generate", generate)
 
 
-    # Build graph
+# Build graph
     workflow.set_entry_point("retrieve")
     workflow.add_edge("retrieve", "check_relevance")
     workflow.add_conditional_edges("check_relevance", decide_to_generate, {
