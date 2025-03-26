@@ -100,7 +100,6 @@ def main():
 
     hallucination_grader = prompt | llm | JsonOutputParser()
 
-    ### State
     class GraphState(TypedDict):
         """
         Represents the state of our graph.
@@ -176,7 +175,6 @@ def main():
         """
 
         print("---WEB SEARCH---")
-        print(state)
         question = state["question"]
         documents = None
         if "documents" in state:
@@ -190,7 +188,8 @@ def main():
             documents.append(web_results)
         else:
             documents = [web_results]
-        return {"documents": documents, "question": question}
+        print(documents)
+        return {"documents": documents, "question": question, "web_search": "YES"}
 
 
     def check_relevance(state):
@@ -210,7 +209,6 @@ def main():
 
         # Score each doc
         filtered_docs = []
-        web_search = "No"
 
         for d in documents:
             score = retrieval_grader.invoke(
@@ -224,10 +222,8 @@ def main():
                 print("--NOT RELEVANT--")
                 continue
 
-        if not filtered_docs:
-            web_search = "YES"
 
-        return {"documents": filtered_docs, "question": question, "web_search": web_search}
+        return {"documents": filtered_docs, "question": question}
 
 
 
@@ -246,10 +242,9 @@ def main():
 
         print("---DECIDE TO GENERATE---")
         documents = state["documents"]
-        web_searched = state["web_search"]
 
         if not documents:
-            if web_searched == "YES":
+            if "web_search" in state:
                 print("---failed: not relevant---")
                 return "end"
             else:
@@ -261,6 +256,7 @@ def main():
 
 
     ### Conditional edge
+
 
     def check_hallucination(state):
         """
@@ -353,26 +349,6 @@ def main():
 
             st.session_state.messages.append({"role": "assistant", "content": final_report})
             st.chat_message("assistant").write(final_report)
-
-    # input_topic = st.text_input(
-    #     ":female-scientist: Enter a question",
-    #     value="What is Prompt?",
-    # )
-    #
-    # generate_report = st.button("Generate")
-    #
-    # if generate_report:
-    #     with st.spinner("Generating Report"):
-    #         inputs = {"question": input_topic}
-    #         for output in app.stream(inputs):
-    #             for key, value in output.items():
-    #                 print(f"Finished running: {key}:")
-    #         final_report = value["generation"]
-    #         st.markdown(final_report)
-    #
-    # st.sidebar.markdown("---")
-    # if st.sidebar.button("Restart"):
-    #     st.session_state.clear()
 
 
 main()
